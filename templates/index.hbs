@@ -1,0 +1,21 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{title}}</title>
+  </head>
+
+  <body>
+    <div class="posts">
+      <ul>
+        {{#each collections.posts}}
+          <li class="post">
+          <span class="title"><a href="{{basename this.path}}">{{this.title}}</a></span>
+            <span class="date">{{this.date}}</span>
+          </div>
+        {{/each}}
+      </ul>
+    </div>
+  </body>
+</html>
