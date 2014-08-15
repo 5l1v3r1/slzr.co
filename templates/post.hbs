@@ -5,16 +5,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <link rel="stylesheet" href="css/main.css" />
-    <title>{{title}}</title>
+    <link href='http://fonts.googleapis.com/css?family=Lato|Open+Sans' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" href="http://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.1/styles/default.min.css">
+    <link rel="stylesheet" href="../css/main.css" />
+    <title>🍪 {{title}}</title>
   </head>
 
-  <body>
-    <h1>{{title}}</h1>
+  <body class="post">
+    <div class="article">
+      <div class="title">{{title}}</div>
+      <div class="date">{{date}}</div>
 
-    <article>
-    {{{ contents }}}
-
-    </article>
+      <div class="content">
+      {{{ contents }}}
+      </div>
+    </div>
   </body>
 </html>

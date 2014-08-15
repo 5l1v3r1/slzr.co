@@ -7,11 +7,18 @@ var Metalsmith = require("metalsmith"),
     branch = require("metalsmith-branch"),
 
     Handlebars = require("handlebars"),
+    highlight = require("highlight.js"),
     path = require("path")
 
 Handlebars.registerHelper("basename", function(input) {
   return new Handlebars.SafeString(
     path.basename(input)
+  )
+})
+
+Handlebars.registerHelper("formatdate", function(date) {
+  return new Handlebars.SafeString(
+    date.getFullYear() + ", " + date.getMonth() + ", " + date.getDay()
   )
 })
 
@@ -23,8 +30,12 @@ function log() {
 }
 
 Metalsmith(__dirname)
-  .source("./site")
-  .use(markdown())
+  .source("./content")
+  .use(markdown({
+    highlight: function(text) {
+      return highlight.highlightAuto(text).value
+    }
+  }))
   .use(collections({
     posts: {
       pattern: "posts/*",
@@ -39,7 +50,6 @@ Metalsmith(__dirname)
   )
   .use(templates("handlebars"))
   .use(less())
-  .use(log())
   .destination("./dist")
   .build(function(err) {
     if (err) console.error(err)

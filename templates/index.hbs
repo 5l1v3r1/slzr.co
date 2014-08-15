@@ -4,11 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
+    <link href='http://fonts.googleapis.com/css?family=Lato' rel='stylesheet' type='text/css'>
     <link rel="stylesheet" href="css/main.css" />
-    <title>{{title}}</title>
+    <title>🍪🍪🍪🍪</title>
   </head>
 
-  <body>
+  <body class="index">
     <div class="header">
       <div class="huge-image" style="background-image: url(images/background.jpg);">
 
@@ -16,17 +17,14 @@
     </div>
 
     <div class="main">
-      <h2 class="posts-title">Posts</h2>
-      <div class="posts">
-        <ul>
-          {{#each collections.posts}}
-            <li class="post">
-              <span class="title"><a href="{{basename this.path}}">{{this.title}}</a></span>
-              <span class="date">{{this.date}}</span>
-            </li>
-          {{/each}}
-        </ul>
-      </div>
+      <ul class="posts">
+        {{#each collections.posts}}
+          <li class="post">
+            <span class="title"><a href="{{basename this.path}}">{{this.title}}</a></span>
+            <span class="date">{{this.date}}</span>
+          </li>
+        {{/each}}
+      </ul>
     </div>
   </body>
 </html>
