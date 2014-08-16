@@ -1,4 +1,9 @@
+html {
+  height: 100%;
+}
+
 body {
+  height: 100%;
   margin: 0;
   font-family: Helvetica, Arial, sans-serif;
   background-color: rgb(245, 245, 245);
@@ -9,7 +14,7 @@ body {
 body.index {
 
 .header {
-  height: 680px;
+  height: 60%;
 }
 
 .huge-image {
@@ -24,8 +29,9 @@ body.index {
 }
 
 .posts {
+  display: block;
   list-style: none;
-  margin: 40px 0;
+  margin: 20px 0;
   padding: 8px 6px;
 
   //background-color: rgb(177, 203, 231);
@@ -60,12 +66,17 @@ body.index {
 }
 
 @media (max-width: 720px) {
+  .main {
+    width: 90%;
+  }
   .post .title {
     font-size: 18px;
   }
 }
 
 }
+
+
 
 /* Post Template */
 
@@ -86,7 +97,7 @@ body.post {
 
 .article {
   width: 720px;
-  margin: 20px auto;
+  margin: 20px auto 60px auto;
 }
 
 h1, h2, h3, h4, h5 {
@@ -139,6 +150,16 @@ a {
 
   &:hover {
     color: rgb(70, 54, 164);
+  }
+}
+
+@media (max-width: 720px) {
+  .article {
+    width: 90%;
+  }
+
+  p {
+    font-size: 14px;
   }
 }
 

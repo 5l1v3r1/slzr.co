@@ -1,5 +1,6 @@
 ---
 title: "Node's vm module"
+slug: "nodes-vm-module"
 date: "2014-03-27"
 template: post.hbs
 ---

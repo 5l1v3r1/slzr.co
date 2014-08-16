@@ -1,5 +1,6 @@
 ---
 title: "Embedding CSS in JavaScript - JsCSS"
+slug: "embedding-css-in-javascript"
 date: "2014-04-25"
 template: post.hbs
 ---

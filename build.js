@@ -29,6 +29,25 @@ function log() {
   }
 }
 
+/*
+  Because I don't want to break links to those (few) articles that are receiving
+  a few hits from Google (6+/day :), there is an option to manually supply slugs
+*/
+
+// Replaces auto-generated slug for custom slug if there is a slug field.
+// Only works in this specific case, with permalinks...
+function manualSlugs(files, metalsmith, done) {
+  Object.keys(files).forEach(function(key) {
+    var file = files[key]
+    if (file.slug !== undefined) {
+      delete files[key]
+      file.path = file.slug
+      files[file.slug + "/index.html"] = file
+    }
+  })
+  done()
+}
+
 Metalsmith(__dirname)
   .source("./content")
   .use(markdown({
@@ -48,6 +67,7 @@ Metalsmith(__dirname)
       pattern: ":title"
     }))
   )
+  .use(manualSlugs)
   .use(templates("handlebars"))
   .use(less())
   .destination("./dist")
