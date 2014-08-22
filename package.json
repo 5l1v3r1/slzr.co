@@ -9,7 +9,8 @@
     "metalsmith-collections": "^0.6.0",
     "metalsmith-less": "^0.1.2",
     "metalsmith-branch": "0.0.4",
-    "highlight.js": "^8.1.0"
+    "highlight.js": "^8.1.0",
+    "metalsmith-ignore": "^0.1.2"
   },
   "author": "Alexander Selzer <aselzer3@gmail.com> (http://alexselzer.com/)"
 }

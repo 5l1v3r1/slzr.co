@@ -3,6 +3,7 @@ var Metalsmith = require("metalsmith"),
     collections = require("metalsmith-collections"),
     permalinks = require("metalsmith-permalinks"),
     templates = require("metalsmith-templates"),
+    ignore = require("metalsmith-ignore"),
     less = require("metalsmith-less"),
     branch = require("metalsmith-branch"),
 
@@ -50,6 +51,9 @@ function manualSlugs(files, metalsmith, done) {
 
 Metalsmith(__dirname)
   .source("./content")
+  .use(ignore(
+    "images/**/*.src.jpg"
+  ))
   .use(markdown({
     highlight: function(text) {
       return highlight.highlightAuto(text).value
