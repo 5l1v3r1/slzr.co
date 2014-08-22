@@ -29,7 +29,13 @@ air, using their MAC addresses?
 
 * Using a USB 3G module, live data from the flight could be collected by a server, and displayed in realtime.
 
-![](../images/posts/raspberry-spy-copter/flying-sm.jpg)
+## A Raspberry Spycopter flying with GPS and sniffing WiFi networks
+
+![](../images/posts/raspberry-spy-copter/flying-1-sm.jpg)
+
+![](../images/posts/raspberry-spy-copter/flying-2-sm.jpg)
+
+![](../images/posts/raspberry-spy-copter/flying-3-sm.jpg)
 
 After flying around for 4 minutes or so in a radius of about 300m, the Raspberry Pi had found
 20 WLAN networks, of which one was even WEP-based (could crack it out of the air, with aircrack :).
@@ -43,6 +49,12 @@ After flying around for 4 minutes or so in a radius of about 300m, the Raspberry
 * TP-Link TL-WN722N
 
 * Tape & Wire
+
+### Optional
+
+* USB hub
+
+* USB GPS
 
 ## Choosing a Battery
 
