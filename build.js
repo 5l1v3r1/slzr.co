@@ -49,11 +49,23 @@ function manualSlugs(files, metalsmith, done) {
   done()
 }
 
+function ignoreDrafts(files, metalsmith, done) {
+  Object.keys(files).forEach(function(key) {
+    console.log(files[key])
+    if (files[key].draft !== undefined) {
+      console.log("ignore")
+      delete files[key]
+    }
+  })
+  done()
+}
+
 Metalsmith(__dirname)
   .source("./content")
   .use(ignore(
     "images/**/*.src.jpg"
   ))
+  .use(ignoreDrafts)
   .use(markdown({
     highlight: function(text) {
       return highlight.highlightAuto(text).value

@@ -2,16 +2,16 @@
 title: "Node.js and libpcap"
 date: "2014-10-4"
 template: post.hbs
-draft: true
 ---
 
-This is a log of my experiments with aircrack, tcpdump, libpcap, node.js.
+This is a (not particularly well-structured) log of my experiments with packet capturing in node.js
 
 Parts of it will only work on Linux.
 
 ## Capturing packets on a local network
 
-Using tcpdump to capture packets.
+Tcpdump is basically libpcap and a lot of protocol parsers.
+Using tcpdump to capture packets (as opposed to node):
 
 #### HTTP GET / on GitHub, followed by DNS queries for the CDNs.
 
@@ -28,74 +28,23 @@ Using tcpdump to capture packets.
 16:16:40.628359 IP alexandlzersmbp.fritz.box.22507 > fritz.box.domain: 51131+ A? collector.githubapp.com. (41)
 ```
 
-
-## Installing Aircrack
-
-The version of Aircrack-ng available in the Debian repositories might be a bit old, and will possibly
-not work as expected. If this is true, compiling is quite easy.
-
-```bash
-$ wget http://download.aircrack-ng.org/aircrack-ng-1.2-beta3.tar.gz
-$ tar xzf aircrack-ng-1.2-beta3.tar.gz
-$ cd aircrack-ng-1.2-beta3
-$ make
-$ sudo make install
-```
-
-Warning: compiling took almost 10 minutes on a Raspberry Pi (Model B).
-
-## Setting an interface to promiscuous mode
-
-Note: Don't do this with the network interface currently running SSH over.
-
-```bash
-sudo airmon-ng start wlan1
-```
-
-`ip addr list` should look similar to this:
-
-```
-3: wlan0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP qlen 1000
-    link/ether 80:1f:02:cd:52:1d brd ff:ff:ff:ff:ff:ff
-    inet 192.168.178.28/24 brd 192.168.178.255 scope global wlan0
-       valid_lft forever preferred_lft forever
-4: wlan1: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP qlen 1000
-    link/ether 10:fe:ed:24:e2:ba brd ff:ff:ff:ff:ff:ff
-    inet 192.168.178.27/24 brd 192.168.178.255 scope global wlan1
-       valid_lft forever preferred_lft forever
-5: mon0: <BROADCAST,ALLMULTI,PROMISC,NOTRAILERS,UP,LOWER_UP> mtu 1500 qdisc mq state UNKNOWN qlen 1000
-    link/ieee802.11/radiotap 10:fe:ed:24:e2:ba brd ff:ff:ff:ff:ff:ff
-```
-
-`sudo tcpdump -i mon0`:
-
-```
-...
-15:27:14.659817 1151763740383us tsft 1.0 Mb/s 2412 MHz 11g -80dB signal antenna 0 Acknowledgment RA:10:fe:ed:24:e2:ba (oui Unknown)
-15:27:11.992521 [bit 15] CF +QoS Data IV:1346 Pad 20 KeyID 0
-15:27:14.661369 1151763740708us tsft 1.0 Mb/s 2412 MHz 11g -37dB signal antenna 0 Beacon ([////]) [1.0* 2.0* 5.5* 11.0* 6.0 9.0 12.0 18.0 Mbit] ESS CH: 1, PRIVACY
-...
-```
-
-WiFi Beacons!
-
-
 ## Node.js and libpcap
 
-tcpdump is just libpcap, but it's probably a bad idea to parse the output of tcpdump, although parsing the `tcpdump -w <name>` file should be fine.
-I woldn't do that, though, in this case, because just using the node library directly is less complex, and shows the packets in real-time.
+[node_pcap](https://github.com/mranney/node_pcap) is a binding to the C library, and
+includes a bunch of [protocol parsers written in JavaScript](https://github.com/mranney/node_pcap/blob/master/pcap.js).
 
-#### Example program
+#### Example node.js program
 
-this prints source, destination MAC addresses, and the underlying protocol if IP, IPv6, ARP.
+this prints the source, destination MAC addresses, and the underlying protocol if it is IP, IPv6 or ARP.
 
 ```javascript
 var args = require("minimist")(process.argv.slice(2))
 var pcap = require("pcap")
 
-var netInterface = args._[0] || "en0"
+var netInterface = args._[0] || "wlan0"
+var filter = args.filter
 
-var session = pcap.createSession(netInterface)
+var session = pcap.createSession(netInterface, filter)
 
 session.on("packet", function(rawPacket) {
   var packet = pcap.decode.packet(rawPacket)
@@ -127,6 +76,9 @@ function log(packet) {
 ```
 
 #### Output
+
+all packets:
+`node capture.js en0`
 ```
 IP	c0:25:06:c7:d2:51	->	01:00:5e:7f:ff:fa	192.168.178.1	->	239.255.255.250
 IPv6	c0:25:06:c7:d2:51	->	33:33:00:00:00:0c	fd00::c225:6ff:fec7:d251	->	ff05::c
@@ -142,9 +94,28 @@ ARP	a4:ee:57:3f:0b:fe	->	ff:ff:ff:ff:ff:ff192.168.178.24	->	192.168.178.24
 IP	a4:ee:57:3f:0b:fe	->	01:00:5e:7f:ff:fa	192.168.178.24	->	239.255.255.250
 ```
 
-This will only work on MAC-packets (packet.link is the MAC layer).
+just arp:
+`node capture.js --filter "arp" en0`
+```
+ARP	c0:25:06:c7:d2:51	->	14:10:9f:d8:85:d1192.168.178.1	->	192.168.178.168
+ARP	14:10:9f:d8:85:d1	->	c0:25:06:c7:d2:51192.168.178.168	->	192.168.178.1
+ARP	a4:ee:57:3f:0b:fe	->	ff:ff:ff:ff:ff:ff192.168.178.24	->	192.168.178.24
+ARP	c0:25:06:c7:d2:51	->	14:10:9f:d8:85:d1192.168.178.1	->	192.168.178.168
+ARP	14:10:9f:d8:85:d1	->	c0:25:06:c7:d2:51192.168.178.168	->	192.168.178.1
+ARP	a4:ee:57:3f:0b:fe	->	ff:ff:ff:ff:ff:ff192.168.178.24	->	192.168.178.24
+ARP	c0:25:06:c7:d2:51	->	14:10:9f:d8:85:d1192.168.178.1	->	192.168.178.168
+ARP	14:10:9f:d8:85:d1	->	c0:25:06:c7:d2:51192.168.178.168	->	192.168.178.1
+```
+
+#### Filters
+
+Filters are an efficient way of ignoring all useless packets.
+
+See `man pcap-filter` ([http://www.tcpdump.org/manpages/pcap-filter.7.html](http://www.tcpdump.org/manpages/pcap-filter.7.html))
 
 #### Packet examples
+
+The kind of structure node_pcap represents packets in (JSON).
 
 ##### IP UDP Packet
 ```json
@@ -233,6 +204,7 @@ This will only work on MAC-packets (packet.link is the MAC layer).
 ```
 
 ##### 802.11 frame (monitor mode)
+
 ```json
 {
   "link_type": "LINKTYPE_IEEE802_11_RADIO",
@@ -262,58 +234,4 @@ This will only work on MAC-packets (packet.link is the MAC layer).
     "time_ms": 1412658263425.633
   }
 }
-```
-
-## Capturing 802.11 frames
-
-To display WiFi frames, the program had to be slightly modified.
-
-```javascript
-var args = require("minimist")(process.argv.slice(2))
-var pcap = require("pcap")
-
-var netInterface = args._[0] || "en0"
-
-var session = pcap.createSession(netInterface)
-
-session.on("packet", function(rawPacket) {
-  /*
-    Sometimes this happens: Error: Unknown LLC types: DSAP: 173, SSAP: 58
-
-  */
-  try {
-    var packet = pcap.decode.packet(rawPacket)
-
-    log(packet)
-  }
-  catch (e) {
-    console.log("error:", e.toString())
-  }
-})
-
-function log(packet) {
-  if (!packet)
-    return null
-
-  if (packet.link) {
-    var line = packet.link.shost + "\t->\t" + packet.link.dhost
-
-    if (packet.link.ip) {
-      line = "IP\t" + line + "\t" + packet.link.ip.saddr + "\t->\t" + packet.link.ip.daddr
-    }
-    else if (packet.link.ipv6) {
-      line = "IPv6\t" + line + "\t" + packet.link.ipv6.saddr + "\t->\t" + packet.link.ipv6.daddr
-    }
-    else if (packet.link.arp) {
-      line = "ARP\t" + line + packet.link.arp.sender_pa + "\t->\t" + packet.link.arp.target_pa
-    }
-    else {
-      console.log(packet)
-    }
-
-    console.log(line)
-
-  }
-}
-
 ```
