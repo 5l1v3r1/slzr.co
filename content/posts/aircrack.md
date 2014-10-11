@@ -1,33 +1,9 @@
 ---
-title: "Node.js and libpcap"
-date: "2014-10-4"
+title: "Aircrack on the Raspberry Pi"
+date: "2014-10-11"
+slug: "rpi-aircrack"
 template: post.hbs
-draft: true
 ---
-
-This is a log of my experiments with aircrack, tcpdump, libpcap, node.js.
-
-Parts of it will only work on Linux.
-
-## Capturing packets on a local network
-
-Using tcpdump to capture packets.
-
-#### HTTP GET / on GitHub, followed by DNS queries for the CDNs.
-
-```
-16:16:40.415951 IP 188.21.9.119.https > alexandlzersmbp.fritz.box.56203: Flags [P.], seq 2580970604:2580970689, ack 899639943, win 1392, options [nop,nop,TS val 42737208 ecr 333947378], length 85
-16:16:40.415994 IP alexandlzersmbp.fritz.box.56203 > 188.21.9.119.https: Flags [.], ack 85, win 8186, options [nop,nop,TS val 333962429 ecr 42737208], length 0
-16:16:40.599930 IP alexandlzersmbp.fritz.box.12060 > fritz.box.domain: 13754+ A? github.com. (28)
-16:16:40.605987 IP alexandlzersmbp.fritz.box.12622 > fritz.box.domain: 25329+ A? api.github.com. (32)
-16:16:40.606229 IP alexandlzersmbp.fritz.box.61820 > fritz.box.domain: 18858+ A? assets-cdn.github.com. (39)
-16:16:40.606489 IP alexandlzersmbp.fritz.box.56648 > fritz.box.domain: 30920+ A? avatars1.githubusercontent.com. (48)
-16:16:40.606714 IP alexandlzersmbp.fritz.box.52821 > fritz.box.domain: 40540+ A? avatars2.githubusercontent.com. (48)
-16:16:40.606976 IP alexandlzersmbp.fritz.box.19979 > fritz.box.domain: 22494+ A? collector-cdn.github.com. (42)
-16:16:40.628136 IP fritz.box.domain > alexandlzersmbp.fritz.box.56648: 30920 2/0/0 CNAME github.map.fastly.net., A 185.31.17.133 (99)
-16:16:40.628359 IP alexandlzersmbp.fritz.box.22507 > fritz.box.domain: 51131+ A? collector.githubapp.com. (41)
-```
-
 
 ## Installing Aircrack
 
@@ -44,9 +20,10 @@ $ sudo make install
 
 Warning: compiling took almost 10 minutes on a Raspberry Pi (Model B).
 
-## Setting an interface to promiscuous mode
+## Setting an interface to monitor mode
 
-Note: Don't do this with the network interface currently running SSH over.
+Note: Don't do this with the network interface currently running SSH on if unsure.
+It might lock you out if there is no other way of connecting.
 
 ```bash
 sudo airmon-ng start wlan1
@@ -67,253 +44,56 @@ sudo airmon-ng start wlan1
     link/ieee802.11/radiotap 10:fe:ed:24:e2:ba brd ff:ff:ff:ff:ff:ff
 ```
 
+`wlan0` is a realtek chip (rtl8192cu) that does not support monitor mode and has a low range,
+and `wlan1` is a TP-Link antenna with Atheros chip (ath9k) that works really well.
+
 `sudo tcpdump -i mon0`:
 
 ```
-...
 15:27:14.659817 1151763740383us tsft 1.0 Mb/s 2412 MHz 11g -80dB signal antenna 0 Acknowledgment RA:10:fe:ed:24:e2:ba (oui Unknown)
 15:27:11.992521 [bit 15] CF +QoS Data IV:1346 Pad 20 KeyID 0
 15:27:14.661369 1151763740708us tsft 1.0 Mb/s 2412 MHz 11g -37dB signal antenna 0 Beacon ([////]) [1.0* 2.0* 5.5* 11.0* 6.0 9.0 12.0 18.0 Mbit] ESS CH: 1, PRIVACY
-...
 ```
 
-WiFi Beacons!
+This is a wifi ACK frame (1), a data frame (2), and a beacon frame (3), which proves that the interface is in
+monitor mode and works correctly.
 
-
-## Node.js and libpcap
-
-tcpdump is just libpcap, but it's probably a bad idea to parse the output of tcpdump, although parsing the `tcpdump -w <name>` file should be fine.
-I woldn't do that, though, in this case, because just using the node library directly is less complex, and shows the packets in real-time.
-
-#### Example program
-
-this prints source, destination MAC addresses, and the underlying protocol if IP, IPv6, ARP.
-
-```javascript
-var args = require("minimist")(process.argv.slice(2))
-var pcap = require("pcap")
-
-var netInterface = args._[0] || "en0"
-
-var session = pcap.createSession(netInterface)
-
-session.on("packet", function(rawPacket) {
-  var packet = pcap.decode.packet(rawPacket)
-
-  log(packet)
-})
-
-function log(packet) {
-  if (packet.link) {
-    var line = packet.link.shost + "\t->\t" + packet.link.dhost
-
-    if (packet.link.ip) {
-      line = "IP\t" + line + "\t" + packet.link.ip.saddr + "\t->\t" + packet.link.ip.daddr
-    }
-    else if (packet.link.ipv6) {
-      line = "IPv6\t" + line + "\t" + packet.link.ipv6.saddr + "\t->\t" + packet.link.ipv6.daddr
-    }
-    else if (packet.link.arp) {
-      line = "ARP\t" + line + packet.link.arp.sender_pa + "\t->\t" + packet.link.arp.target_pa
-    }
-    else {
-      console.log(JSON.stringify(packet, null, 2))
-    }
-
-    console.log(line)
-
-  }
-}
-```
-
-#### Output
-```
-IP	c0:25:06:c7:d2:51	->	01:00:5e:7f:ff:fa	192.168.178.1	->	239.255.255.250
-IPv6	c0:25:06:c7:d2:51	->	33:33:00:00:00:0c	fd00::c225:6ff:fec7:d251	->	ff05::c
-IPv6	c0:25:06:c7:d2:51	->	33:33:00:00:00:0c	fe80::c225:6ff:fec7:d251	->	ff02::c
-IP	14:10:9f:d8:85:d1	->	ff:ff:ff:ff:ff:ff	192.168.178.168	->	192.168.178.255
-IP	14:10:9f:d8:85:d1	->	01:00:5e:00:00:01	192.168.178.168	->	224.0.0.1
-IP	c0:25:06:c7:d2:51	->	01:00:5e:7f:ff:fa	192.168.178.1	->	239.255.255.250
-IPv6	c0:25:06:c7:d2:51	->	33:33:00:00:00:0c	fd00::c225:6ff:fec7:d251	->	ff05::c
-IPv6	c0:25:06:c7:d2:51	->	33:33:00:00:00:0c	fe80::c225:6ff:fec7:d251	->	ff02::c
-IP	c0:25:06:c7:d2:51	->	01:00:5e:7f:ff:fa	192.168.178.1	->	239.255.255.250
-IPv6	c0:25:06:c7:d2:51	->	33:33:00:00:00:0c	fe80::c225:6ff:fec7:d251	->	ff02::c
-ARP	a4:ee:57:3f:0b:fe	->	ff:ff:ff:ff:ff:ff192.168.178.24	->	192.168.178.24
-IP	a4:ee:57:3f:0b:fe	->	01:00:5e:7f:ff:fa	192.168.178.24	->	239.255.255.250
-```
-
-This will only work on MAC-packets (packet.link is the MAC layer).
-
-#### Packet examples
-
-##### IP UDP Packet
-```json
-{
-  "link_type": "LINKTYPE_ETHERNET",
-  "link": {
-    "dhost": "c0:25:06:c7:d2:51",
-    "shost": "14:10:9f:d8:85:d1",
-    "ethertype": 2048,
-    "ip": {
-      "version": 4,
-      "header_length": 5,
-      "header_bytes": 20,
-      "diffserv": 0,
-      "total_length": 31,
-      "identification": 2459,
-      "flags": {
-        "reserved": 0,
-        "df": 0,
-        "mf": 0
-      },
-      "fragment_offset": 0,
-      "ttl": 64,
-      "protocol": 17,
-      "header_checksum": 9596,
-      "saddr": "192.168.178.168",
-      "daddr": "217.68.255.33",
-      "protocol_name": "UDP",
-      "udp": {
-        "sport": 38623,
-        "dport": 10912,
-        "length": 11,
-        "checksum": 41570,
-        "data_offset": 42,
-        "data_end": 45,
-        "data_bytes": 3,
-        "data": [
-          51,
-          62,
-          29
-        ]
-      }
-    }
-  },
-  "pcap_header": {
-    "tv_sec": 1412438327,
-    "tv_usec": 899194,
-    "caplen": 45,
-    "len": 45,
-    "link_type": "LINKTYPE_ETHERNET",
-    "time_ms": 1412438327899.194
-  }
-}
-```
-
-##### ARP Packet
-```json
-{
-  "link_type": "LINKTYPE_ETHERNET",
-  "link": {
-    "dhost": "10:fe:ed:50:c6:ee",
-    "shost": "14:10:9f:d8:85:d1",
-    "ethertype": 2054,
-    "arp": {
-      "htype": 1,
-      "ptype": 2048,
-      "hlen": 6,
-      "plen": 4,
-      "operation": "reply",
-      "sender_ha": "14:10:9f:d8:85:d1",
-      "sender_pa": "192.168.178.168",
-      "target_ha": "10:fe:ed:50:c6:ee",
-      "target_pa": "192.168.178.71"
-    }
-  },
-  "pcap_header": {
-    "tv_sec": 1412438590,
-    "tv_usec": 859415,
-    "caplen": 42,
-    "len": 42,
-    "link_type": "LINKTYPE_ETHERNET",
-    "time_ms": 1412438590859.415
-  }
-}
+## Finding targets with Airodump
 
 ```
+BSSID              STATION            PWR   Rate    Lost    Frames  Probe
 
-##### 802.11 frame (monitor mode)
-```json
-{
-  "link_type": "LINKTYPE_IEEE802_11_RADIO",
-  "link": {
-    "headerRevision": 0,
-    "headerPad": 0,
-    "headerLength": 26,
-    "ieee802_11Frame": {
-      "frameControl": 148,
-      "type": 1,
-      "subType": 9,
-      "flags": 0,
-      "duration": 30,
-      "bssid": "58:93:96:45:3b:28",
-      "shost": "88:32:9b:6e:f8:48",
-      "dhost": "05:00:c0:53:01:00",
-      "fragSeq": 0,
-      "strength": -92
-    }
-  },
-  "pcap_header": {
-    "tv_sec": 1412658263,
-    "tv_usec": 425633,
-    "caplen": 58,
-    "len": 58,
-    "link_type": "LINKTYPE_IEEE802_11_RADIO",
-    "time_ms": 1412658263425.633
-  }
-}
+C0:25:06:C7:D2:57  10:FE:ED:24:E2:BA    0    0e- 0e     0    12991
+C0:25:06:C7:D2:57  14:30:C6:2C:10:D3  -25    1e- 1      0      383
+C0:25:06:C7:D2:57  80:1F:02:CD:52:1D  -27    0 - 6      1       85
+(not associated)   A4:EE:57:3F:0B:FE  -81    0 - 1      0       10
+90:84:0D:DB:49:FF  14:10:9F:D8:85:D1  -40    0 - 0e     0       12
 ```
 
-## Capturing 802.11 frames
+```
+BSSID              STATION            PWR   Rate    Lost    Frames  Probe
 
-To display WiFi frames, the program had to be slightly modified.
+(not associated)   04:F7:E4:30:AC:5C  -45    0 - 1      0        3
+(not associated)   A4:EE:57:3F:0B:FE  -78    0 - 1      0       18
+(not associated)   18:1E:B0:CA:DA:24  -82    0 - 1      0        5
+(not associated)   98:0C:82:34:3D:E6  -87    0 - 1      0        1
+C0:25:06:C7:D2:57  10:FE:ED:24:E2:BA    0    0e- 0e     0    51742
+C0:25:06:C7:D2:57  14:30:C6:2C:10:D3  -39    0e- 1      0     6553
+C0:25:06:C7:D2:57  80:1F:02:CD:52:1D  -32    1e- 1e     0      561
+A4:52:6F:45:97:FE  D0:AE:EC:84:B1:18  -76    0 - 1e     0      227  Kobergers Netzwerk
+```
 
-```javascript
-var args = require("minimist")(process.argv.slice(2))
-var pcap = require("pcap")
+`10:FE:ED:24:E2:BA` is the Raspberry Pi,
+`14:30:C6:2C:10:D3` an android phone
+`14:10:9F:D8:85:D1` an iPhone
 
-var netInterface = args._[0] || "en0"
-
-var session = pcap.createSession(netInterface)
-
-session.on("packet", function(rawPacket) {
-  /*
-    Sometimes this happens: Error: Unknown LLC types: DSAP: 173, SSAP: 58
-
-  */
-  try {
-    var packet = pcap.decode.packet(rawPacket)
-
-    log(packet)
-  }
-  catch (e) {
-    console.log("error:", e.toString())
-  }
-})
-
-function log(packet) {
-  if (!packet)
-    return null
-
-  if (packet.link) {
-    var line = packet.link.shost + "\t->\t" + packet.link.dhost
-
-    if (packet.link.ip) {
-      line = "IP\t" + line + "\t" + packet.link.ip.saddr + "\t->\t" + packet.link.ip.daddr
-    }
-    else if (packet.link.ipv6) {
-      line = "IPv6\t" + line + "\t" + packet.link.ipv6.saddr + "\t->\t" + packet.link.ipv6.daddr
-    }
-    else if (packet.link.arp) {
-      line = "ARP\t" + line + packet.link.arp.sender_pa + "\t->\t" + packet.link.arp.target_pa
-    }
-    else {
-      console.log(packet)
-    }
-
-    console.log(line)
-
-  }
-}
+## Deauth Attack
 
 ```
+$ sudo aireplay-ng -0 20 -a "C0:25:06:C7:D2:57" -c "10:FE:ED:24:E2:BA" --ignore-negative-one mon0
+13:09:04  Waiting for beacon frame (BSSID: C0:25:06:C7:D2:57) on channel -1
+....
+..
+```
+
+and that's it. The Raspberry Pi just deauthenticated itself.
