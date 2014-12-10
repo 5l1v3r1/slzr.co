@@ -2,6 +2,7 @@
 title: "Recording audio on Android Wear"
 date: "2014-12-10"
 slug: "audiorecord-android-wear"
+draft: true
 template: post.hbs
 ---
 
