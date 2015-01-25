@@ -25,15 +25,9 @@ Handlebars.registerHelper("formatdate", function(date) {
 
 function log() {
   return function(files, metalsmith, done) {
-    console.log(files)
     done()
   }
 }
-
-/*
-  Because I don't want to break links to those (few) articles that are receiving
-  a few hits from Google (6+/day :), there is an option to manually supply slugs
-*/
 
 // Replaces auto-generated slug for custom slug if there is a slug field.
 // Only works in this specific case, with permalinks...
@@ -53,7 +47,6 @@ function ignoreDrafts(files, metalsmith, done) {
   Object.keys(files).forEach(function(key) {
     console.log(files[key])
     if (files[key].draft !== undefined) {
-      console.log("ignore")
       delete files[key]
     }
   })
